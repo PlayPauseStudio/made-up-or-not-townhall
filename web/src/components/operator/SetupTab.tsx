@@ -2,30 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { game } from '@/lib/gameState';
-import type { OperatorState, Settings, TeamId } from '@/lib/types';
+import type { OperatorState, Settings } from '@/lib/types';
 import type { Act } from './ShowTab';
 import { ShowTitle } from '@/components/ShowTitle';
 
-type TeamDraft = { id: TeamId; name: string; players: [string, string] };
-
 export function SetupTab({ state, act }: { state: OperatorState; act: Act }) {
   const [title, setTitle] = useState(state.title);
-  const [teams, setTeams] = useState<TeamDraft[]>(state.teams.map((t) => ({ id: t.id, name: t.name, players: [...t.players] as [string, string] })));
   const [saved, setSaved] = useState(false);
 
   // Pick up changes made from another operator tab.
   useEffect(() => setTitle(state.title), [state.title]);
-  useEffect(
-    () => setTeams(state.teams.map((t) => ({ id: t.id, name: t.name, players: [...t.players] as [string, string] }))),
-    [state.teams],
-  );
 
   const s = state.settings;
   const setSetting = (patch: Partial<Settings>) => act(game.setSettings(patch));
 
-  const saveSetup = async () => {
-    const ok = (await act(game.setTitle(title.trim() || 'Made Up or Not'))) && (await act(game.setTeams(teams)));
-    if (ok) {
+  const saveTitle = async () => {
+    if (await act(game.setTitle(title.trim() || 'Made Up or Not'))) {
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     }
@@ -34,7 +26,7 @@ export function SetupTab({ state, act }: { state: OperatorState; act: Act }) {
   return (
     <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
       <section className="panel space-y-4 p-5">
-        <h2 className="label">Show &amp; teams</h2>
+        <h2 className="label">Show</h2>
         <div>
           <label className="label">Show title (big screen)</label>
           <input className="input mt-1" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
@@ -42,59 +34,15 @@ export function SetupTab({ state, act }: { state: OperatorState; act: Act }) {
             Used when there is no title image, and as the image&apos;s alt text.
           </p>
         </div>
-        <TitleImageField state={state} act={act} />
-        {teams.map((t, i) => (
-          <div key={t.id} className="rounded-xl border p-3" style={{ borderColor: t.id === 'A' ? 'var(--team-a-ink)' : 'var(--team-b-ink)' }}>
-            <label className="label">Team {t.id}</label>
-            <input
-              className="input mt-1"
-              value={t.name}
-              maxLength={40}
-              onChange={(e) => setTeams(teams.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-            />
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {t.players.map((p, k) => (
-                <input
-                  key={k}
-                  className="input"
-                  placeholder={`Player ${k + 1}`}
-                  value={p}
-                  maxLength={40}
-                  onChange={(e) =>
-                    setTeams(
-                      teams.map((x, j) =>
-                        j === i ? { ...x, players: x.players.map((y, m) => (m === k ? e.target.value : y)) as [string, string] } : x,
-                      ),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-        <button
-          className="btn btn-gold w-full"
-          disabled={teams.some((t) => !t.name.trim() || t.players.some((p) => !p.trim()))}
-          onClick={saveSetup}
-        >
-          {saved ? 'Saved ✓' : 'Save title & teams'}
+        <button className="btn btn-gold w-full" onClick={saveTitle}>
+          {saved ? 'Saved ✓' : 'Save title'}
         </button>
+        <TitleImageField state={state} act={act} />
       </section>
 
       <section className="panel space-y-4 p-5">
-        <h2 className="label">Rules</h2>
-        <p className="text-xs text-muted">These save instantly and can change mid-show.</p>
-        <Row
-          label="Points for a right answer"
-          hint="Applies to every question not yet played, and to new or imported questions with no points of their own. Played questions keep what they scored."
-        >
-          <NumberInput value={s.questionPoints ?? 10} max={10000} onCommit={(v) => setSetting({ questionPoints: v })} />
-        </Row>
-        <Row label="Wrong-answer penalty" hint="Points a team loses for a wrong answer (0 = none)">
-          <NumberInput value={s.wrongPenalty} max={1000} onCommit={(v) => setSetting({ wrongPenalty: v })} />
-        </Row>
+        <h2 className="label">Display</h2>
         <Toggle label="Sound effects" hint="Played on the display (the screen with the speakers)" value={s.sounds ?? true} onChange={(v) => setSetting({ sounds: v })} />
-        <Toggle label="Alternate turns" hint="Hand the pick to the other team after each tile" value={s.alternateTurns} onChange={(v) => setSetting({ alternateTurns: v })} />
       </section>
     </div>
   );
@@ -123,26 +71,6 @@ function Toggle({ label, hint, value, onChange }: { label: string; hint: string;
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${value ? 'left-[22px]' : 'left-0.5'}`} />
       </button>
     </Row>
-  );
-}
-
-function NumberInput({ value, max, onCommit }: { value: number; max: number; onCommit: (v: number) => void }) {
-  const [v, setV] = useState(String(value));
-  useEffect(() => setV(String(value)), [value]);
-  const commit = () => {
-    const n = Math.min(max, Number(v || 0));
-    if (n !== value) onCommit(n);
-    else setV(String(value));
-  };
-  return (
-    <input
-      className="input !w-20 text-center"
-      inputMode="numeric"
-      value={v}
-      onChange={(e) => setV(e.target.value.replace(/\D/g, ''))}
-      onBlur={commit}
-      onKeyDown={(e) => e.key === 'Enter' && commit()}
-    />
   );
 }
 

@@ -1,8 +1,8 @@
 # Made Up or Not — frontend only (no server)
 
-A separate copy of quiz-show-live with the tic-tac-toe taken out: two teams of
-two, one grid of category tiles (built for ~40 questions, up to 60), and the
-question screen with its options. Changes here never touch quiz-show-live.
+A separate copy of quiz-show-live with the tic-tac-toe and the teams taken out:
+one set of questions (built for ~40, up to 60) shown one by one, no teams or
+scores. Changes here never touch quiz-show-live.
 
 **There is no server.** The game runs in the browser: the same rules code the
 quiz show's server uses (`web/src/engine/`) applies every click, saves the whole
@@ -25,62 +25,40 @@ made-up-or-not-live/
   web/   Next.js static export — /operator, /display (Vercel)
 ```
 
-## The format (not final — kept data-driven)
+## The format
 
-- **Board:** one grid of every question, in order (1–60 tiles; 40 lay out 8 × 5).
-  Each tile is a category hiding one question with **2 to 4 options**, one
-  correct. A played tile turns the colour of the team that answered it.
-- **Turns:** the team whose turn it is picks a tile. Turns alternate after each
-  revealed tile (switchable).
-- **Scoring:** the tile's points to the answering team if right; optional penalty
-  if wrong (Teams & rules tab). Scores can be nudged or set by hand.
+- **No teams, no scores.** The questions roll one by one, in the order they are
+  in the Questions tab (1–60; built for ~40).
+- Each question has a category and **2 to 4 options**, one correct.
+- The **Board** screen shows every question as a category tile, done ones ticked
+  off — useful as an overview between questions; it is optional.
 
-## Running a tile (operator → Run show)
+## Running the show (operator → Run show)
 
-Every step is one click and shows on the display. The gold button is always the
-next step; **↶ Step back** undoes the last one. The six step chips across the top are also
-buttons: click a done step to go back to it (undoing everything after it, points
-included), or a later step to run the steps in between. Steps after **Lock
-answer** need the team's answer locked first.
+The gold button is always the next step; **↶ Step back** undoes the last one.
 
-1. **Select tile** — click a tile on the left. The display stays on the board with
-   that tile lit up with its points (the rest dim); the question is still secret.
-   Clicking another tile moves the highlight.
-2. **Reveal question** — the display flips to the question, options hidden.
-3. **Show options** — one at a time (**Show next option**) or **Show all options**.
-4. **Lock answer** — click it on the option the team says; it shows in their colour.
-5. **Show if right** — right: the option turns green ✓ and the tile is done.
-   Wrong: the team's option turns red.
-6. **Reveal correct answer** — only needed after a wrong answer.
+1. **Show question N on display** — the next question goes straight up, with its
+   category and "Question N of M" on top, options hidden.
+2. **Show options** — one at a time (**Show next option**) or **Show all options**.
+3. **Reveal the answer** — the correct option turns green ✓, the rest fade.
+   (**Reveal answer now** skips straight there.)
+4. **Next question (N) →** — the next question not yet done goes up.
 
-Then **Back to board**. A tile cancelled before step 5 goes back unplayed. If the
-team gives no answer, **No answer — reveal** shows the answer with no points.
+Click any question in the list on the left to put that one up instead. A done
+question can be made "not done" again with its **reset** link. After the last
+question the button becomes **All done — final screen**.
 
-Mistake in the sheet? Edit the question in the Questions tab — if that tile was
-already played, it is re-scored automatically. A played tile can be put back on
-the board with its **reset** link (its points come off).
+Big-screen controls (right rail): Lobby · Board · Question · Final, and the red
+**✕ Big X** toggle: a pulsing red wash over the whole display, with the buzzer,
+until switched off.
 
-**Coin toss** (before the first tile): Show tab → **Show toss screen** puts the
-toss up on the display (a gold Heads/Tails coin), pick which team calls
-**Heads** (the other gets Tails), then **Flip the coin** — it spins for ~3 s and
-the team whose side lands picks first (or **Land it on** Heads/Tails if the toss
-was done on stage) — then **Go to the board**. Changing the call clears the flip;
-re-flipping is allowed until a tile is opened.
+**Sound effects** play on the display: question up, answer revealed, final
+screen and Big X. They are synthesised for this show by
+`web/scripts/make-sfx.cjs` (no third-party samples) into `web/public/sfx/`. Turn
+them off in Settings → Sound effects. Sounds play only after someone has clicked
+the display page once (browsers block sound until then).
 
-Big-screen controls (right rail): Lobby · Toss · Board · Question · Scores · Final, and
-the red **✕ Big X** toggle: a pulsing red wash over the whole display, with the
-buzzer, until switched off.
-
-**Sound effects** play on the display: tile picked, question up, answer locked,
-right / wrong, correct answer shown, coin toss (drum roll + landing), final
-screen and Big X. They are synthesised for
-this show by `web/scripts/make-sfx.cjs` (no third-party samples) into
-`web/public/sfx/`; edit a cue there and run `node scripts/make-sfx.cjs` in `web/`
-to regenerate, or drop in your own .wav with the same name. Turn them off with
-Teams & rules → Sound effects. Sounds play
-only after someone has clicked the display page once (browsers block sound until then).
-
-**Title artwork:** Teams & rules → Title image takes a wide PNG (transparent
+**Title artwork:** Settings → Title image takes a wide PNG (transparent
 background, cropped tight, ≤ 5 MB). It replaces the title text on the lobby,
 question and final screens. It is kept in this browser (IndexedDB), so upload it
 on the show laptop.

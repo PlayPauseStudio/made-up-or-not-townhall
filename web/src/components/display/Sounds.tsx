@@ -69,10 +69,7 @@ export function Sounds({ state }: { state: DisplayState }) {
     // Final screen.
     if (state.phase === 'final' && before.phase !== 'final') return play('win');
 
-    // A tile picked (or the highlight moved to another).
-    const sel = state.board.find((t) => t.selected);
-    const wasSel = before.board.find((t) => t.selected);
-    if (sel && sel.id !== wasSel?.id && !state.round) return play('select');
+    // No pick sound: one click puts the question straight up, and its reveal sound covers it.
 
     const r = state.round;
     const b = before.round?.questionId === r?.questionId ? before.round : null;

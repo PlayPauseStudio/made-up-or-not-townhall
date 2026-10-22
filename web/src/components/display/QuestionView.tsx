@@ -1,46 +1,31 @@
-import type { PublicRound, Team } from '@/lib/types';
-import { LETTERS, teamOf } from '@/lib/types';
-import { fitOption, fitPrompt, teamVars } from './teamStyle';
+import type { PublicRound } from '@/lib/types';
+import { LETTERS } from '@/lib/types';
+import { fitOption, fitPrompt } from './teamStyle';
 
-interface Props {
-  round: PublicRound;
-  teams: [Team, Team];
-}
+type OptionState = 'hidden' | 'shown' | 'correct' | 'dim';
 
-type OptionState = 'hidden' | 'shown' | 'locked' | 'correct' | 'wrong' | 'dim';
-
+/** No teams: an option is hidden, up, or — once the answer is revealed — the right one or faded. */
 function optionState(round: PublicRound, i: number): OptionState {
   if (round.options[i] === null) return 'hidden';
-  if (round.answerRevealed) {
-    if (i === round.correct) return 'correct';
-    if (i === round.teamAnswer) return 'wrong';
-    return 'dim';
-  }
-  // Wrong verdict shown, correct answer not yet: only the team's pick changes.
-  if (round.verdictShown && i === round.teamAnswer) return 'wrong';
-  return i === round.teamAnswer ? 'locked' : 'shown';
+  if (round.answerRevealed) return i === round.correct ? 'correct' : 'dim';
+  return 'shown';
 }
 
 const CARD: Record<OptionState, string> = {
   hidden: 'shimmer border-white/10',
   shown: 'border-white/20 bg-white/[0.07]',
-  locked: 'border-[var(--team)] bg-[color-mix(in_srgb,var(--team)_22%,transparent)] pulse-glow',
   correct: 'border-good bg-[color-mix(in_srgb,var(--good)_32%,transparent)] pop-in',
-  // A wrong pick goes red. (Teams are purple and orange, so red reads as wrong, not as a team.)
-  wrong: 'border-bad bg-[color-mix(in_srgb,var(--bad)_35%,transparent)] pop-in',
   dim: 'border-white/10 bg-white/[0.03] opacity-45',
 };
 
-export function QuestionView({ round, teams }: Props) {
-  const team = teamOf(teams, round.teamId);
+export function QuestionView({ round }: { round: PublicRound }) {
   const n = round.options.length;
   // 2 options side by side, 3 in a row, 4 as a 2×2 grid. Fewer options get taller cards.
   const grid = n === 3 ? 'grid-cols-3' : 'grid-cols-2';
-  const cardHeight = n === 4 ? 'h-[6.6vw]' : 'h-[9vw]';
+  const cardHeight = n === 4 ? 'h-[7.2vw]' : 'h-[10vw]';
 
   return (
-    <div className="flex h-full flex-col gap-[1.6vw]" style={teamVars(round.teamId)}>
-      {/* Category and points sit in the score bar; who is answering is the glowing team panel. */}
+    <div className="flex h-full flex-col gap-[1.6vw]">
       {/* Prompt */}
       <div
         key={round.questionId}
@@ -74,36 +59,10 @@ export function QuestionView({ round, teams }: Props) {
                   {text}
                 </span>
               )}
-              {st === 'locked' && (
-                <span className="ml-auto rounded-full bg-[var(--team)] px-[0.9vw] py-[0.2vw] font-display text-[1.4vw] text-white">
-                  {team.name}
-                </span>
-              )}
-              {st === 'correct' && (
-                <span className="ml-auto font-display text-[3.4vw]">✓</span>
-              )}
+              {st === 'correct' && <span className="ml-auto font-display text-[3.4vw]">✓</span>}
             </div>
           );
         })}
-      </div>
-
-      {/* Result line */}
-      <div className="flex min-h-[3.6vw] items-center justify-center gap-[1.4vw]">
-        {round.verdictShown && round.awarded && (
-          <span
-            className={`pop-in font-display text-[3vw] ${
-              round.awarded.points > 0 ? 'text-good' : round.awarded.points < 0 ? 'text-bad' : 'text-white/60'
-            }`}
-          >
-            {round.awarded.points > 0
-              ? `+${round.awarded.points} to ${team.name}`
-              : round.awarded.points < 0
-                ? `${team.name} ${round.awarded.points}`
-                : round.teamAnswer === null
-                  ? 'No answer — no points'
-                  : `No points for ${team.name}`}
-          </span>
-        )}
       </div>
     </div>
   );

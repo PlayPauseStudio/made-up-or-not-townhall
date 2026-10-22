@@ -109,10 +109,8 @@ export function questionsToCsv(questions: Question[]): string {
     })),
   );
 }
-
-/** The show log, one row per operator action, with both scores after each. */
-export function logToCsv(state: OperatorState, log: LogEntry[]): string {
-  const [a, b] = state.teams;
+/** The show log, one row per operator action. */
+export function logToCsv(_state: OperatorState, log: LogEntry[]): string {
   return Papa.unparse(
     log.map((e) => {
       const at = new Date(e.at);
@@ -120,12 +118,9 @@ export function logToCsv(state: OperatorState, log: LogEntry[]): string {
         Date: at.toLocaleDateString('en-IN'),
         Time: at.toLocaleTimeString('en-IN', { hour12: false }),
         Event: e.event,
-        Team: e.team,
         Category: e.category,
         Question: e.question,
         Detail: e.detail,
-        [`${a.name} score`]: e.scoreA,
-        [`${b.name} score`]: e.scoreB,
       };
     }),
   );

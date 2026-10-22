@@ -47,7 +47,8 @@ export function describe(event: string, payload: Payload, before: GameState, aft
   const q = after.questions.find((x) => x.id === qid) ?? before.questions.find((x) => x.id === qid);
 
   // Defaults: the tile in play (if any) and the team answering it.
-  let team = teamName(after, round?.teamId);
+  // No teams in this show: the log's team column stays empty.
+  let team = '';
   let category = q?.category ?? '';
   let question = q?.prompt ?? '';
   let label: string;
@@ -55,7 +56,7 @@ export function describe(event: string, payload: Payload, before: GameState, aft
 
   switch (event) {
     case OP.OPEN_TILE:
-      label = 'Tile selected';
+      label = 'Question selected';
       break;
     case OP.SHOW_QUESTION:
       label = 'Question revealed';
@@ -97,7 +98,7 @@ export function describe(event: string, payload: Payload, before: GameState, aft
       break;
     }
     case OP.REVEAL_ANSWER:
-      label = before.round?.verdictShown ? 'Correct answer revealed' : 'No answer — correct answer revealed';
+      label = 'Answer revealed';
       detail = optionText(q, q?.correct);
       break;
     case OP.UNREVEAL_ANSWER: {

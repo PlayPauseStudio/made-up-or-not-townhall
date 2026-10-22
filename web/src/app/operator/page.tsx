@@ -82,7 +82,7 @@ type Tab = 'show' | 'questions' | 'setup';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'show', label: 'Run show' },
   { id: 'questions', label: 'Questions' },
-  { id: 'setup', label: 'Teams & rules' },
+  { id: 'setup', label: 'Settings' },
 ];
 
 function Console({ token, onLogout }: { token: string; onLogout: (reason?: string) => void }) {
