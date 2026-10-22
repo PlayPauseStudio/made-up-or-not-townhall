@@ -79,15 +79,15 @@ Animals,Octopuses have three hearts.,True,False,,,A,10,Two pump blood to the gil
   column (an old one is ignored). Rows that break this are rejected with the row
   number, and nothing is imported until the sheet is fixed.
 - `answer`: a letter (A–D), a number (1–4), or the option's text.
-- `points` is optional; blank uses Teams & rules → **Points for a right answer** (default 10). Changing that setting moves every unplayed question to the new value; played questions keep what they scored. `note` is for the host only — it shows on the operator
-  panel, never on the big screen.
+- `points` is still accepted (the template is unchanged) but not used — there is no
+  scoring. `note` is for the host only: it shows on the operator panel, never on
+  the big screen.
 
 ## Show log
 
 Every operator action is recorded: tile selected, question revealed, each option
-shown, answer locked, right/wrong (with points), correct answer revealed, step
-backs, cancelled tiles, manual score changes, display changes, question edits and
-resets — each with the time, team, category, question and both scores after it.
+shown, answer revealed, step backs, display changes, question edits and resets —
+each with the time, category and question.
 
 **Run show → Show log → Export CSV** downloads it. The log survives New game and
 Full reset and refreshes; only **Clear log** empties it.
