@@ -37,7 +37,7 @@ function Login() {
           e.preventDefault();
           setBusy(true);
           setError('');
-          if (!(await authenticate(password))) setError('Wrong password, or the server is unreachable.');
+          if (!(await authenticate(password))) setError('Wrong password.');
           setBusy(false);
         }}
       >
@@ -61,35 +61,19 @@ function Login() {
 }
 
 /**
- * Whether the Redis backup is alive. If it is not, a redeploy or restart wipes
- * the board, scores and phones — this is how you find out before the show.
+ * Whether this browser is holding the game. Everything is saved here (no
+ * server), so a refresh is safe — but clearing site data or switching browser
+ * starts a fresh show.
  */
 function BackupBadge({ backup }: { backup: BackupStatus | null | undefined }) {
   if (!backup) return null;
-  let text: string;
-  let tone: string;
-  if (backup.mode === 'disabled') {
-    text = '⚠ Backup off (no Redis)';
-    tone = 'text-red-400';
-  } else if (!backup.connected) {
-    text = '⚠ Backup: Redis not connected';
-    tone = 'text-red-400';
-  } else {
-    text = backup.lastSavedAt ? '✓ Backed up' : '✓ Backup ready';
-    tone = 'text-good';
-  }
-  const detail = [
-    backup.restoredVersion !== null ? 'Show was restored from Redis at startup.' : 'Server started fresh (nothing restored).',
-    backup.lastSavedAt
-      ? `Last saved ${new Date(backup.lastSavedAt).toLocaleTimeString()}.`
-      : 'Not saved yet — saves within 5s of any change.',
-    backup.lastError ? `Last error: ${backup.lastError}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const ok = backup.connected;
+  const detail = ok
+    ? 'The game is saved in this browser after every click. Keep the operator and display in this same browser.'
+    : `Could not save: ${backup.lastError ?? 'unknown error'}`;
   return (
-    <span className={tone} title={detail}>
-      {text}
+    <span className={ok ? 'text-good' : 'text-red-400'} title={detail}>
+      {ok ? '✓ Saved in this browser' : '⚠ Not saving'}
     </span>
   );
 }
@@ -129,7 +113,7 @@ function Console({ token, onLogout }: { token: string; onLogout: (reason?: strin
   if (!state) {
     return (
       <div className="stage flex min-h-screen items-center justify-center text-muted">
-        {connected ? 'Loading…' : 'Connecting to the server…'}
+        Loading…
       </div>
     );
   }

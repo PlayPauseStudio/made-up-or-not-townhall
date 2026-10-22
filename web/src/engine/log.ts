@@ -1,4 +1,4 @@
-import { OP } from '../protocol/events';
+import { OP } from './events';
 import type { GameState, LogEntry, Question, TeamId } from './state';
 import { otherTeam } from './state';
 import { roundStep } from './reducers';

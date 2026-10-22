@@ -1,5 +1,5 @@
 import { type GameState, type Round, type TeamId } from './state';
-import type { SnapshotStatus } from '../persistence/snapshot';
+import type { BackupStatus as SnapshotStatus } from '@/lib/types';
 
 /**
  * What each screen is allowed to see.

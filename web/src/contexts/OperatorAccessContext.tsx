@@ -16,18 +16,12 @@ interface OperatorAccessContextType {
 
 const OperatorAccessContext = createContext<OperatorAccessContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'quiz_show_operator_token';
+const TOKEN_KEY = 'made_up_or_not_operator';
 
 /**
- * Operator access.
- *
- * The original app compared a SHA-256 hash inside the browser, which means the
- * check itself shipped to every visitor: the hash was in the bundle, and the
- * `if` around it could simply be deleted in devtools. Here the password is
- * POSTed to the server, verified against a bcrypt hash that never leaves it,
- * and exchanged for a short-lived JWT. The socket handshake re-verifies that
- * JWT on every connect, so a tampered client gets a closed socket rather than
- * a control panel.
+ * Operator access. There is no server, so the password is checked in this
+ * browser (realtime.ts → operatorLogin) — enough to keep a passer-by off the
+ * operator page, not a real lock. The session lasts until the tab is closed.
  */
 export function OperatorAccessProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);

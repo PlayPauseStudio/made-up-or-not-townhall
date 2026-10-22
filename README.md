@@ -1,13 +1,28 @@
-# Made Up or Not — live (server-backed)
+# Made Up or Not — frontend only (no server)
 
 A separate copy of quiz-show-live with the tic-tac-toe taken out: two teams of
 two, one grid of category tiles (built for ~40 questions, up to 60), and the
 question screen with its options. Changes here never touch quiz-show-live.
 
+**There is no server.** The game runs in the browser: the same rules code the
+quiz show's server uses (`web/src/engine/`) applies every click, saves the whole
+game in the browser (localStorage; the title image in IndexedDB) and tells the
+other windows to re-read (BroadcastChannel).
+
+> **The operator and the display must be two windows of the same browser on the
+> same laptop**: the operator on the laptop's screen, the display full-screen on
+> the second screen / HDMI out (e.g. into the Cam Link). Two different computers
+> cannot talk to each other in this version.
+
+- A refresh of either window is safe: the game is saved after every click.
+- Clearing the browser's site data, a private window or a different browser
+  starts a fresh show (export the show log first if you need it).
+- The operator password is checked in the browser (a SHA-256 hash in
+  `web/src/lib/realtime.ts`): it keeps a passer-by out; it is not a real lock.
+
 ```
 made-up-or-not-live/
-  server/   Express + Socket.IO — the authority for game state (Railway)
-  web/      Next.js static export — /operator, /display (Railway, served by `serve`)
+  web/   Next.js static export — /operator, /display (Vercel)
 ```
 
 ## The format (not final — kept data-driven)
@@ -67,8 +82,8 @@ only after someone has clicked the display page once (browsers block sound until
 
 **Title artwork:** Teams & rules → Title image takes a wide PNG (transparent
 background, cropped tight, ≤ 5 MB). It replaces the title text on the lobby,
-question and final screens. The file is kept on the server (and in
-Redis), not in game state, so it is not re-sent on every click.
+question and final screens. It is kept in this browser (IndexedDB), so upload it
+on the show laptop.
 
 ## Loading questions
 
@@ -97,44 +112,27 @@ backs, cancelled tiles, manual score changes, display changes, question edits an
 resets — each with the time, team, category, question and both scores after it.
 
 **Run show → Show log → Export CSV** downloads it. The log survives New game and
-Full reset (and server restarts, via Redis); only **Clear log** empties it. The
-panel only holds the log's size and latest line — the full log is fetched when you
-export, so it never slows down the clicks during the show.
+Full reset and refreshes; only **Clear log** empties it.
 
 ## What each screen is allowed to see
 
-The correct answer exists only on the server and the operator panel until the
-reveal. The display gets the prompt and the options that are up — never `correct`
-before the reveal, never an unrevealed option, never the host's notes.
+The display page is only given what it should show: until the reveal it gets the
+prompt and the options that are up, never the correct answer, an unrevealed
+option or the host's notes. (Everything is in the same browser, so this keeps the
+screen honest rather than secret.)
 
 ## Running locally
 
 ```bash
-cd server && cp .env.example .env && npm install && npm run dev   # :8080, password letmein
-cd web && npm install && npm run dev                              # :3000
+cd web && npm install && npm run dev     # http://localhost:3000 — /operator and /display
 ```
 
-Verify the server: `cd server && npm run smoke` (needs `npm run dev` running;
-talks to 127.0.0.1 — set `SMOKE_URL` for another port).
+## Deploying (Vercel)
 
-## Deploying (both on Railway: two services in one project)
+Vercel → **Add New → Project** → import `PlayPauseStudio/made-up-or-not-townhall`
+→ **Root Directory** `web` (framework Next.js, detected) → **Deploy**. No
+environment variables. Every push to `main` redeploys.
 
-**Server** — service with root directory `server` (Dockerfile build, health check `/healthz`):
-
-| variable | value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `ALLOWED_ORIGINS` | the web service's URL, no trailing slash |
-| `JWT_SECRET` | a long random string |
-| `OPERATOR_PASSWORD_HASH` | `npm run hash -- 'the password'` |
-| `REDIS_URL` | optional — without it a restart mid-show loses state |
-
-**Web** — service with root directory `web` (`web/railway.json`: `npm run build`, then
-`npm start` serves the static export on `$PORT`):
-
-| variable | value |
-|---|---|
-| `NEXT_PUBLIC_WS_URL` | the server service's URL (https) |
-
-`NEXT_PUBLIC_*` are inlined at **build** time: after changing it, redeploy the web
-service.
+On show day open `<vercel-url>/operator` and `<vercel-url>/display` in the same
+browser on the show laptop; drag the display window to the second screen and
+press F11. Click the display once so the browser lets it play sound.

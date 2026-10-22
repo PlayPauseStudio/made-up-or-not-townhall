@@ -1,17 +1,14 @@
 // src/lib/realtime.ts
 //
-// Thin Socket.IO client wrapper for talking to made-up-or-not-server. Mirrors the
-// server's wire protocol (server/src/protocol/events.ts). The server is the
-// authority for game state; clients emit intent and receive redacted state.
-
-import { io, type Socket } from 'socket.io-client';
+// Action names, error text and the operator password check. There is no
+// server: actions run in this browser (src/engine/local.ts).
 
 export type Role = 'operator' | 'display';
 
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080';
-export const DISPLAY_KEY = process.env.NEXT_PUBLIC_DISPLAY_KEY || '';
+/** Kept for the display page's signature; there is no key without a server. */
+export const DISPLAY_KEY = '';
 
-// ── Event names (must match the server) ──────────────────────────────────────
+// ── Action names (must match src/engine/events.ts) ───────────────────────────
 export const OP = {
   SET_TITLE: 'op:setTitle',
   SET_TITLE_IMAGE: 'op:setTitleImage',
@@ -84,13 +81,12 @@ export const ERROR_TEXT: Record<string, string> = {
   nothing_to_reveal: 'Every option is already showing.',
   bad_options: 'A question needs 2 to 4 options, none of them blank.',
   bad_image: 'The title image must be a PNG file.',
+  storage_full: 'This browser is out of storage — clear the show log.',
   image_too_large: 'The title image must be under 5 MB.',
   bad_correct_answer: 'Pick which option is correct.',
   too_many_questions: 'That is more than 60 questions.',
   duplicate_question_id: 'Two questions share the same id.',
-  not_connected: 'Not connected to the server.',
-  timeout: 'The server did not respond.',
-  server_error: 'Something went wrong on the server.',
+  server_error: 'Something went wrong — try again.',
 };
 
 export function errorText(code?: string): string {
@@ -101,48 +97,16 @@ export function errorText(code?: string): string {
 export type TokenProvider = () => Promise<string | null> | string | null;
 
 /**
- * Create a configured socket for a role. `getToken` is re-run on every
- * (re)connect, so a Firebase ID token never goes stale mid-show.
+ * SHA-256 of the operator password. Without a server this check runs in the
+ * browser, so it only keeps a curious viewer out of the operator page; anyone
+ * with devtools could get past it. To change the password, replace this with
+ * the SHA-256 (hex) of the new one.
  */
-export function createGameSocket(role: Role, getToken?: TokenProvider): Socket {
-  return io(WS_URL, {
-    // Polling first, then upgrade: venue Wi-Fi that blocks WebSocket degrades
-    // to "slightly slower" instead of "dead".
-    transports: ['polling', 'websocket'],
-    upgrade: true,
-    reconnection: true,
-    reconnectionDelay: 500,
-    reconnectionDelayMax: 4000,
-    auth: (cb) => {
-      Promise.resolve(getToken ? getToken() : null)
-        .then((token) => cb({ role, token: token ?? undefined }))
-        .catch(() => cb({ role }));
-    },
-  });
-}
+const OPERATOR_PASSWORD_SHA256 = 'a5fc8e47f266091cf3e43964f9f8110724e65db270ec3fc7660523fe4551388a';
 
-/** Promise-based emit that resolves the server ack. */
-export function emitAck(socket: Socket, event: string, payload?: unknown): Promise<Ack> {
-  return new Promise((resolve) => {
-    socket.timeout(8000).emit(event, payload ?? {}, (err: unknown, ack: Ack) => {
-      if (err) resolve({ ok: false, error: 'timeout' });
-      else resolve(ack ?? { ok: false, error: 'no_ack' });
-    });
-  });
-}
-
-/** POST the operator password to the server and return a JWT (or null). */
+/** Check the operator password; returns a session token on success, else null. */
 export async function operatorLogin(password: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${WS_URL}/auth/operator/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { token?: string };
-    return data.token ?? null;
-  } catch {
-    return null;
-  }
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+  const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  return hex === OPERATOR_PASSWORD_SHA256 ? 'local-operator' : null;
 }

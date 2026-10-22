@@ -1,138 +1,60 @@
 'use client';
 
 /**
- * Socket-backed game-state manager. Nothing is written by the client: every
- * mutation is an intent emitted to the server, which validates it, applies it
- * and broadcasts the result back — so a page renders what the server says
- * happened, not what it hoped would happen.
+ * Game-state manager for the pages. There is no server: actions run through the
+ * in-browser engine (src/engine/local.ts), which saves the game in this browser
+ * and tells every other window of it (operator, display) to re-read.
  *
- * Each page connects as one role and receives that role's projection of the
- * state (see types.ts: OperatorState / DisplayState).
+ * Each page asks for one role and gets that role's projection of the state
+ * (see types.ts: OperatorState / DisplayState) — the display still never sees a
+ * correct answer before the reveal.
  */
 
-import type { Socket } from 'socket.io-client';
-import {
-  createGameSocket,
-  emitAck,
-  OP,
-  SRV,
-  type Ack,
-  type Role,
-  type TokenProvider,
-} from './realtime';
+import { dispatch, displayState, fullLog, onChange, operatorState } from '@/engine/local';
+import { OP, type Ack, type Role, type TokenProvider } from './realtime';
 import type { CoinSide, LogEntry, Phase, QuestionInput, Settings, TeamId } from './types';
 
 type Listener = () => void;
-type StateMsg = { version: number; state: unknown };
-type PatchMsg = { version: number; changed: Record<string, unknown> };
-
-/** Handshake refusals that retrying the same credential cannot fix. */
-const AUTH_REFUSALS = new Set([
-  'unauthorized',
-  'operator_token_required',
-  'display_key_invalid',
-  'invalid_role',
-]);
 
 class GameStateManager {
-  private socket: Socket | null = null;
   private role: Role | null = null;
-  private identity: string | undefined;
   private state: unknown = null;
-  private connected = false;
-  private authError: string | null = null;
   private listeners = new Set<Listener>();
-  private teardown: (() => void) | null = null;
+  private unsubscribe: (() => void) | null = null;
 
-  /** Open (or reuse) the socket. Idempotent for the same role + identity. */
-  connect(role: Role, getToken?: TokenProvider, identity?: string): void {
-    if (this.role === role && this.identity === identity && this.socket) return;
+  /** Start following the saved game as `role`. Idempotent for the same role. */
+  connect(role: Role, _getToken?: TokenProvider, _identity?: string): void {
+    if (this.role === role && this.unsubscribe) return;
     this.disconnect();
     this.role = role;
-    this.identity = identity;
-    this.authError = null;
-    this.openSocket(role, getToken);
+    this.refresh();
+    this.unsubscribe = onChange(() => this.refresh());
   }
 
-  private openSocket(role: Role, getToken?: TokenProvider): void {
-    const socket = createGameSocket(role, getToken);
-    this.socket = socket;
-
-    socket.on('connect', () => {
-      this.connected = true;
-      this.authError = null;
-      this.emitChange();
-    });
-    socket.on('disconnect', () => {
-      this.connected = false;
-      this.emitChange();
-    });
-    socket.on('connect_error', (err: Error) => {
-      this.connected = false;
-      const reason = err?.message ?? 'connect_error';
-      if (AUTH_REFUSALS.has(reason)) {
-        this.authError = reason;
-        // A refused credential (an expired operator JWT) never fixes itself.
-        socket.disconnect();
-      }
-      this.emitChange();
-    });
-    socket.on(SRV.STATE_FULL, (msg: StateMsg) => {
-      this.state = msg.state;
-      this.emitChange();
-    });
-    socket.on(SRV.STATE_PATCH, (msg: PatchMsg) => {
-      this.state = { ...((this.state as object) ?? {}), ...msg.changed };
-      this.emitChange();
-    });
-
-    // Laptops drop the socket when they sleep or the tab is hidden. Reconnect the moment the
-    // page is visible again; the server answers with a fresh state:full.
-    if (typeof document !== 'undefined') {
-      const resume = () => {
-        if (document.visibilityState !== 'visible') return;
-        if (!socket.connected) socket.connect();
-      };
-      document.addEventListener('visibilitychange', resume);
-      window.addEventListener('online', resume);
-      window.addEventListener('focus', resume);
-      this.teardown = () => {
-        document.removeEventListener('visibilitychange', resume);
-        window.removeEventListener('online', resume);
-        window.removeEventListener('focus', resume);
-      };
-    }
+  private refresh(): void {
+    if (!this.role) return;
+    this.state = this.role === 'operator' ? operatorState() : displayState();
+    this.listeners.forEach((fn) => fn());
   }
 
   disconnect(): void {
-    this.teardown?.();
-    this.teardown = null;
-    if (this.socket) {
-      this.socket.removeAllListeners();
-      this.socket.disconnect();
-    }
-    this.socket = null;
-    this.connected = false;
-    this.authError = null;
+    this.unsubscribe?.();
+    this.unsubscribe = null;
     this.role = null;
-    this.identity = undefined;
     this.state = null;
   }
 
+  /** Always "connected": everything is in this browser. */
   isConnected(): boolean {
-    return this.connected;
+    return this.role !== null;
   }
 
   getAuthError(): string | null {
-    return this.authError;
+    return null;
   }
 
   getState(): unknown {
     return this.state;
-  }
-
-  private emitChange(): void {
-    this.listeners.forEach((fn) => fn());
   }
 
   subscribe(deliver: Listener): () => void {
@@ -143,8 +65,7 @@ class GameStateManager {
   }
 
   private emit(event: string, payload?: unknown): Promise<Ack> {
-    if (!this.socket) return Promise.resolve({ ok: false, error: 'not_connected' });
-    return emitAck(this.socket, event, payload);
+    return dispatch(event, (payload ?? {}) as Record<string, unknown>);
   }
 
   // ── Operator ───────────────────────────────────────────────────────────────
@@ -160,7 +81,7 @@ class GameStateManager {
   moveQuestion = (questionId: string, toIndex: number) =>
     this.emit(OP.MOVE_QUESTION, { questionId, toIndex });
   setPhase = (phase: Phase) => this.emit(OP.SET_PHASE, { phase });
-  /** Flip the coin (random), or land it on `teamId`. */
+  /** Assign who calls heads, then flip (random) or land it on `side`. */
   tossCall = (heads: TeamId) => this.emit(OP.TOSS_CALL, { heads });
   toss = (side?: CoinSide) => this.emit(OP.TOSS, side ? { side } : {});
   setTurn = (teamId: TeamId) => this.emit(OP.SET_TURN, { teamId });
@@ -183,11 +104,8 @@ class GameStateManager {
   newGame = () => this.emit(OP.NEW_GAME);
   fullReset = () => this.emit(OP.FULL_RESET);
   clearLog = () => this.emit(OP.CLEAR_LOG);
-  /** The whole show log, for export (it is not part of the operator state). */
-  getLog = async (): Promise<LogEntry[] | null> => {
-    const ack = (await this.emit(OP.GET_LOG)) as { ok: boolean; log?: LogEntry[] };
-    return ack.ok && ack.log ? ack.log : null;
-  };
+  /** The whole show log, for export. */
+  getLog = async (): Promise<LogEntry[] | null> => fullLog() as LogEntry[];
 }
 
 export const game = new GameStateManager();
