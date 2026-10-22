@@ -1,0 +1,32 @@
+{
+  "name": "made-up-or-not-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "serve --config serve.json --listen tcp://0.0.0.0:${PORT:-3000}",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.3.3",
+    "papaparse": "^5.7.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "serve": "^14.2.4",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "postcss": "^8",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5"
+  }
+}

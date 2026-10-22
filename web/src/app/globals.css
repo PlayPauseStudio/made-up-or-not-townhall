@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0e0a14;
+  --bg-2: #1a1222;
+  --panel: rgba(255, 255, 255, 0.05);
+  --line: rgba(255, 255, 255, 0.12);
+  --fg: #f4f4ff;
+  --muted: #a99bb5;
+  /* "gold" is the UI accent — white now, to match the white lines and type on
+     the team cards. The only colours on stage are the two teams' own. */
+  --gold: #ffffff;
+  --gold-deep: #e6dfee;
+  /* Real gold, kept for the winners on the final screen. */
+  --win: #ffc93c;
+  /* Team X (left side) and Team O (right side), from the show's cards. */
+  --team-a: #8c4291;
+  --team-b: #e7611a;
+  /* Lighter tints for team-coloured TEXT on the dark background. */
+  --team-a-ink: #cf8fd6;
+  --team-b-ink: #ff9152;
+  --good: #22c55e;
+  --bad: #ef4444;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-win: var(--win);
+  --color-team-a-ink: var(--team-a-ink);
+  --color-team-b-ink: var(--team-b-ink);
+  --color-team-a: var(--team-a);
+  --color-team-b: var(--team-b);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-inter);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Shared pieces ───────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-gold { background: var(--gold); color: #160d1f; border-color: var(--gold); }
+.btn-gold:hover:not(:disabled) { background: var(--gold-deep); }
+.btn-good { background: var(--good); color: #04130a; border-color: var(--good); }
+.btn-good:hover:not(:disabled) { background: #16a34a; }
+.btn-bad { background: transparent; color: #fca5a5; border-color: rgba(239, 68, 68, 0.5); }
+.btn-bad:hover:not(:disabled) { background: rgba(239, 68, 68, 0.15); }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 0.45rem; }
+.btn-on { background: rgba(255, 255, 255, 0.14); border-color: var(--gold); color: var(--gold); }
+
+.input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--fg);
+  font-size: 0.875rem;
+}
+.input:focus { outline: none; border-color: var(--gold); }
+
+.label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ── Big screen ──────────────────────────────────────────────────────────── */
+
+.stage {
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(140, 66, 145, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 100% 100%, rgba(231, 97, 26, 0.16), transparent 60%),
+    linear-gradient(180deg, #0e0a14 0%, #170e20 100%);
+}
+
+.font-display {
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+@keyframes flip-in {
+  from { transform: perspective(1200px) rotateX(-90deg); opacity: 0; }
+  to { transform: perspective(1200px) rotateX(0); opacity: 1; }
+}
+.flip-in { animation: flip-in 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes pop-in {
+  0% { transform: scale(0.85); opacity: 0; }
+  70% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.pop-in { animation: pop-in 0.4s ease-out both; }
+
+@keyframes rise-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.rise-in { animation: rise-in 0.5s ease-out both; }
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow, rgba(255, 255, 255, 0.45)); }
+  50% { box-shadow: 0 0 2.2vw 0.3vw var(--glow, rgba(255, 255, 255, 0.45)); }
+}
+.pulse-glow { animation: pulse-glow 1.6s ease-in-out infinite; }
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+@keyframes win-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+.win-glow {
+  box-shadow: 0 0 1.4vw 0.4vw rgba(255, 255, 255, 0.55), inset 0 0 1vw rgba(255, 255, 255, 0.25);
+  animation: win-glow 1.6s ease-in-out infinite;
+}
+@keyframes win-glow {
+  0%, 100% { box-shadow: 0 0 1.4vw 0.4vw rgba(255, 255, 255, 0.55), inset 0 0 1vw rgba(255, 255, 255, 0.25); }
+  50% { box-shadow: 0 0 2.6vw 0.8vw rgba(255, 255, 255, 0.8), inset 0 0 1.4vw rgba(255, 255, 255, 0.35); }
+}
+
+/* Coin toss: idles slowly before the first flip; arcs up and down while flipping. */
+@keyframes coin-idle {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(360deg); }
+}
+.coin-idle { animation: coin-idle 4s linear infinite; }
+@keyframes coin-arc {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-5vw) scale(1.1); }
+  80% { transform: translateY(0.6vw) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+.coin-arc { animation: coin-arc 3s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+
+/* Wrong answer: the X slams onto the option card. */
+@keyframes x-stamp {
+  0% { transform: scale(1.8) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(0.92) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.x-stamp { animation: x-stamp 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+/* Full-screen Big X after a wrong answer: in hard, hold, fade over 4s. */
+@keyframes big-x {
+  0% { opacity: 0; transform: scale(1.6); }
+  5% { opacity: 1; transform: scale(0.95); }
+  8% { transform: scale(1); }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.big-x { animation: big-x 4s ease-out both; }
+@keyframes big-x-wash {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.big-x-wash { animation: big-x-wash 4s ease-out both; }
+
+/* Big X held by the operator's toggle: in hard, then stays. */
+@keyframes big-x-in {
+  0% { opacity: 0; transform: scale(1.6); }
+  60% { opacity: 1; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.big-x-in { animation: big-x-in 0.35s ease-out both; }
+@keyframes big-x-wash-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.big-x-wash-in { animation: big-x-wash-in 0.2s ease-out both; }
+
+/* The red screen (operator's Big X toggle): fades in, then the red breathes up and down. */
+@keyframes red-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.95; }
+}
+.red-pulse { animation: big-x-wash-in 0.25s ease-out both, red-pulse 1.4s ease-in-out 0.25s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-in, .pop-in, .rise-in, .pulse-glow, .shimmer, .x-stamp, .big-x, .big-x-wash, .big-x-in, .big-x-wash-in, .win-glow, .red-pulse, .coin-idle, .coin-arc { animation: none; }
+}
